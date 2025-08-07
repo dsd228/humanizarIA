@@ -1,6 +1,24 @@
 // assets/js/scripts.js
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Backend URL configuration
+  const backendUrl = 'http://localhost:5000'; // Change if backend is deployed elsewhere
+
+  // Function to make API calls to backend
+  async function postData(endpoint, payload) {
+    try {
+      const response = await fetch(`${backendUrl}${endpoint}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      if (!response.ok) throw new Error('Error en la respuesta del servidor');
+      return await response.json();
+    } catch (error) {
+      showMessage('Error: ' + error.message, 'danger');
+      return null;
+    }
+  }
   // Utils para mostrar/ocultar spinner
   function toggleSpinner(spinnerId, show) {
     const spinner = document.getElementById(spinnerId);
@@ -75,25 +93,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // -------- HUMANIZAR Y ANALIZAR --------
   const humanizeBtn = document.getElementById('humanize-btn');
-  humanizeBtn.addEventListener('click', () => {
+  humanizeBtn.addEventListener('click', async () => {
     const originalText = document.getElementById('text-original').value.trim();
     if (!originalText) {
       showMessage('Por favor, ingresa texto original.', 'warning');
       return;
     }
 
-    simulateProcess('spinner-humanize', () => {
-      // Simular texto humanizado y análisis de sentimiento
-      const humanized = originalText
-        .replace(/\bAI\b/gi, 'inteligencia artificial')
-        .replace(/\btech\b/gi, 'tecnología avanzada');
-      document.getElementById('humanized-text').value = humanized;
-
-      // Simular análisis de sentimiento
+    toggleSpinner('spinner-humanize', true);
+    
+    const data = await postData('/humanize', { texto: originalText });
+    
+    toggleSpinner('spinner-humanize', false);
+    
+    if (data) {
+      document.getElementById('humanized-text').value = data.humanizado;
+      
+      // Keep the simulated sentiment analysis for now (backend doesn't provide this)
       const sentimentResult = document.getElementById('sentiment-result');
       sentimentResult.innerHTML = `<span class="badge bg-success">Sentimiento: Positivo</span>`;
-      showMessage('Texto humanizado y analizado correctamente.');
-    });
+      showMessage('Texto humanizado correctamente.');
+    }
   });
 
   // -------- EXTRAER PALABRAS CLAVE --------
@@ -131,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // -------- RESUMIR TEXTO --------
   const summaryBtn = document.getElementById('summary-btn');
-  summaryBtn.addEventListener('click', () => {
+  summaryBtn.addEventListener('click', async () => {
     const text = document.getElementById('summary-input').value.trim();
     if (!text) {
       showMessage('Por favor, ingresa texto para resumir.', 'warning');
@@ -141,12 +161,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const sentences = parseInt(document.getElementById('summary-sentences').value, 10) || 3;
     const language = document.getElementById('summary-language').value;
 
-    simulateProcess('spinner-summary', () => {
-      // Simular resumen generado
+    toggleSpinner('spinner-summary', true);
+    
+    const data = await postData('/summary', { texto: text });
+    
+    toggleSpinner('spinner-summary', false);
+    
+    if (data) {
       const summaryOutput = document.getElementById('summary-output');
-      summaryOutput.value = `Resumen (${language} - ${sentences} frases): Este es un resumen simulado del texto ingresado.`;
+      summaryOutput.value = `Resumen (${language} - ${sentences} frases): ${data.resumen}`;
       showMessage('Resumen generado.');
-    });
+    }
   });
 
   // -------- COPIAR RESUMEN --------
