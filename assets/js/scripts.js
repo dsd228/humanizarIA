@@ -1,120 +1,137 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const copySummaryButton = document.getElementById('copy-summary-button');
-    const printSummaryButton = document.getElementById('print-summary-button');
-    const copyHumanizedButton = document.getElementById('copy-humanized-button');
-    const summaryTextContent = document.getElementById('summary-text-content');
-    const humanizedTextContent = document.getElementById('humanized-text-content');
-    const form = document.getElementById('main-form');
-    const loadingIndicator = document.getElementById('loading-indicator');
-    const clearSectionButtons = document.querySelectorAll('.button-clear-section');
-    const messagesContainer = document.getElementById('messages-container');
+// scripts.js — Funcionalidad para HumanizarIA Estático (GitHub Pages)
 
-    // --- Indicador de Carga ---
-    if (form) {
-        form.addEventListener('submit', (event) => {
-            // Mostrar indicador solo si se presiona un botón de acción principal
-            const submitter = event.submitter; // Botón que envió el form
-            if (submitter && submitter.classList.contains('action-button')) {
-                 if (loadingIndicator) {
-                    loadingIndicator.style.display = 'flex';
-                 }
-            }
-             // Pequeña demora para asegurar que el form se envíe antes de ocultar (si es necesario)
-             // setTimeout(() => {
-             //     if (loadingIndicator) loadingIndicator.style.display = 'none';
-             // }, 5000); // Ocultar después de 5s como fallback
-        });
+// Utilidades
+function showSpinner(id, show = true) {
+  const spinner = document.getElementById(id);
+  if (spinner) spinner.classList.toggle('d-none', !show);
+}
+function showMessage(text, type = "info") {
+  const container = document.getElementById('messages-container');
+  if (!container) return;
+  container.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
+    ${text}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
+  </div>`;
+}
+function copyToClipboard(elementId, btnId) {
+  const el = document.getElementById(elementId);
+  const btn = document.getElementById(btnId);
+  if (!el || !navigator.clipboard) {
+    showMessage('No se pudo copiar. Navegador no compatible.', 'danger');
+    return;
+  }
+  navigator.clipboard.writeText(el.value || el.innerText).then(() => {
+    if (btn) {
+      const icon = btn.querySelector('i');
+      const original = icon.className;
+      icon.className = 'fas fa-check';
+      setTimeout(() => { icon.className = original; }, 1200);
     }
-     // Ocultar indicador cuando la página se carga completamente (después de una recarga POST)
-     window.addEventListener('load', () => {
-        if (loadingIndicator) {
-            loadingIndicator.style.display = 'none';
-        }
-     });
+    showMessage('¡Texto copiado al portapapeles!', 'success');
+  }).catch(() => showMessage('Error al copiar.', 'danger'));
+}
+function limpiarCampos(ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+}
+function limpiarResultados(ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '';
+  });
+}
 
-
-    // --- Copiar al Portapapeles ---
-    const copyToClipboard = async (element, button) => {
-        if (!element || !navigator.clipboard) {
-            alert('Error: No se pudo copiar o el navegador no es compatible.');
-            return;
-        }
-        try {
-            await navigator.clipboard.writeText(element.innerText); // Usar innerText para <pre> y <p>
-            // Cambiar ícono temporalmente
-            if(button){
-                const originalIcon = button.innerHTML;
-                button.innerHTML = '<i class="fas fa-check"></i>'; // Ícono de check
-                setTimeout(() => {
-                    button.innerHTML = originalIcon; // Restaurar ícono original
-                }, 1500); // Después de 1.5 segundos
-            } else {
-                 alert('Texto copiado al portapapeles.'); // Fallback si no hay botón
-            }
-
-        } catch (err) {
-            console.error('Error al copiar texto: ', err);
-            alert('Error al copiar texto.');
-        }
-    };
-
-    if (copySummaryButton && summaryTextContent) {
-        copySummaryButton.addEventListener('click', () => copyToClipboard(summaryTextContent, copySummaryButton));
-    }
-
-    if (copyHumanizedButton && humanizedTextContent) {
-        copyHumanizedButton.addEventListener('click', () => copyToClipboard(humanizedTextContent, copyHumanizedButton));
-    }
-
-    // --- Imprimir Resumen ---
-    if (printSummaryButton && summaryTextContent) {
-        printSummaryButton.addEventListener('click', () => {
-            const summaryWindow = window.open('', 'PRINT', 'height=600,width=800');
-
-            summaryWindow.document.write('<html><head><title>Resumen PDF</title>');
-            // Incluir estilos básicos para impresión
-            summaryWindow.document.write('<style>');
-            summaryWindow.document.write(`
-                body { font-family: sans-serif; line-height: 1.5; margin: 20px;}
-                pre { white-space: pre-wrap; word-wrap: break-word; background-color: #f0f0f0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
-                h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px;}
-                @media print {
-                    body { margin: 1cm; } /* Márgenes de impresión */
-                }
-            `);
-            summaryWindow.document.write('</style></head><body>');
-            summaryWindow.document.write(`<h2>Resumen de: ${document.querySelector('.summary-results .filename')?.innerText || 'PDF'}</h2>`); // Obtener nombre si existe
-            summaryWindow.document.write('<pre>' + summaryTextContent.innerText + '</pre>');
-            summaryWindow.document.write('</body></html>');
-
-            summaryWindow.document.close(); // Necesario para IE
-            summaryWindow.focus(); // Necesario para algunos navegadores
-
-            // Dar tiempo para cargar antes de imprimir
-            setTimeout(() => {
-                 summaryWindow.print();
-                 summaryWindow.close();
-            }, 500);
-        });
-    }
-
-    // --- Limpiar Secciones Individuales ---
-    clearSectionButtons.forEach(button => {
-        button.addEventListener('click', (event) => {
-             event.preventDefault(); // Prevenir envío del formulario
-             const targetSelector = button.getAttribute('data-target');
-             const targetElement = document.querySelector(targetSelector);
-             if (targetElement) {
-                 // Ocultar la sección completa
-                 targetElement.style.display = 'none';
-                 // Opcional: podrías querer limpiar campos ocultos específicos también,
-                 // pero ocultar la sección es más simple visualmente.
-             }
-             // Limpiar mensajes flash y de error
-             if (messagesContainer) {
-                messagesContainer.innerHTML = '';
-             }
-        });
-    });
-
+// Humanizar y Analizar (simulado)
+document.getElementById('humanize-btn').addEventListener('click', () => {
+  showSpinner('spinner-humanize', true);
+  setTimeout(() => {
+    document.getElementById('humanized-text').value = 'Este es un texto humanizado de ejemplo.';
+    document.getElementById('sentiment-result').innerHTML =
+      '<span class="badge bg-success"><i class="fas fa-smile"></i> Sentimiento: Positivo (0.87)</span>';
+    showSpinner('spinner-humanize', false);
+    showMessage('¡Texto procesado con éxito!', 'success');
+  }, 1300);
 });
+
+// Extraer palabras clave (simulado)
+document.getElementById('keywords-btn').addEventListener('click', () => {
+  showSpinner('spinner-keywords', true);
+  setTimeout(() => {
+    document.getElementById('keywords-result').innerHTML =
+      '<strong>Palabras Clave:</strong> <span class="badge bg-info text-dark">IA</span> <span class="badge bg-info text-dark">Ética</span> <span class="badge bg-info text-dark">Trabajo</span>';
+    showSpinner('spinner-keywords', false);
+    showMessage('¡Palabras clave extraídas!', 'success');
+  }, 1000);
+});
+
+// Limpiar sección Humanizar
+document.getElementById('clear-humanize').addEventListener('click', () => {
+  limpiarCampos(['text-original', 'humanized-text']);
+  limpiarResultados(['sentiment-result', 'keywords-result']);
+});
+
+// Resumir texto (simulado)
+document.getElementById('summary-btn').addEventListener('click', () => {
+  showSpinner('spinner-summary', true);
+  setTimeout(() => {
+    document.getElementById('summary-output').value = 'Este es un resumen de ejemplo generado automáticamente.';
+    showSpinner('spinner-summary', false);
+    showMessage('¡Resumen generado!', 'success');
+  }, 1200);
+});
+
+// Limpiar sección Resumir
+document.getElementById('clear-summary').addEventListener('click', () => {
+  limpiarCampos(['summary-input', 'summary-output']);
+});
+
+// Copiar textos
+document.getElementById('copy-humanized').addEventListener('click', () => {
+  copyToClipboard('humanized-text', 'copy-humanized');
+});
+document.getElementById('copy-summary').addEventListener('click', () => {
+  copyToClipboard('summary-output', 'copy-summary');
+});
+
+// Captura de pantalla (simulada)
+document.getElementById('screenshot-btn').addEventListener('click', () => {
+  document.getElementById('screenshot-result').innerHTML =
+    '<img src="https://placekitten.com/400/200" alt="Captura simulada" class="img-fluid rounded border" style="max-width:400px;">';
+  showMessage('¡Captura simulada generada!', 'info');
+});
+document.getElementById('clear-capture').addEventListener('click', () => {
+  limpiarResultados(['screenshot-result']);
+});
+
+// Limpiar toda la interfaz
+document.getElementById('clear-all').addEventListener('click', () => {
+  limpiarCampos([
+    'text-original', 'humanized-text', 'summary-input', 'summary-output'
+  ]);
+  limpiarResultados([
+    'sentiment-result', 'keywords-result', 'screenshot-result'
+  ]);
+  showMessage('Interfaz limpiada.', 'secondary');
+});
+
+// Opcional: Cerrar alertas automáticamente después de unos segundos
+document.addEventListener('DOMContentLoaded', () => {
+  const container = document.getElementById('messages-container');
+  if (container) {
+    container.addEventListener('DOMNodeInserted', () => {
+      setTimeout(() => {
+        if (container.firstChild) container.firstChild.classList.remove('show');
+      }, 2500);
+    });
+  }
+});
+
+/*
+  INSTRUCCIONES PARA GITHUB PAGES:
+  1. Sube index.html en la raíz del repositorio.
+  2. Sube este archivo JS en assets/js/scripts.js.
+  3. Ve a Settings > Pages, selecciona la rama y carpeta raíz, y guarda.
+  4. Accede a tu web en https://tuusuario.github.io/tu-repo/
+*/
