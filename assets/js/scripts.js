@@ -1,137 +1,110 @@
-// scripts.js — Funcionalidad para HumanizarIA Estático (GitHub Pages)
+/* ==========================================================================
+   styles.css — Personalización para HumanizarIA
+   ========================================================================== */
 
-// Utilidades
-function showSpinner(id, show = true) {
-  const spinner = document.getElementById(id);
-  if (spinner) spinner.classList.toggle('d-none', !show);
+/* Colores de marca */
+:root {
+  --color-primario: #1976d2;
+  --color-acento: #00bcd4;
+  --color-fondo: #f9fafb;
 }
-function showMessage(text, type = "info") {
-  const container = document.getElementById('messages-container');
-  if (!container) return;
-  container.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show" role="alert">
-    ${text}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
-  </div>`;
+
+/* Fondo general */
+body {
+  background-color: var(--color-fondo);
 }
-function copyToClipboard(elementId, btnId) {
-  const el = document.getElementById(elementId);
-  const btn = document.getElementById(btnId);
-  if (!el || !navigator.clipboard) {
-    showMessage('No se pudo copiar. Navegador no compatible.', 'danger');
-    return;
+
+/* Navbar */
+.navbar {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+}
+.navbar-brand {
+  font-weight: bold;
+  letter-spacing: 1px;
+  font-size: 1.35rem;
+}
+
+/* Cards */
+.card {
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+}
+
+/* Botones personalizados */
+.btn-primary, .btn-info, .btn-success, .btn-danger {
+  border-radius: 0.5em;
+}
+.btn-primary {
+  background-color: var(--color-primario);
+  border: none;
+}
+.btn-primary:hover, .btn-primary:focus {
+  background-color: #115293;
+}
+.btn-info {
+  background-color: var(--color-acento);
+  color: #fff;
+  border: none;
+}
+.btn-info:hover, .btn-info:focus {
+  background-color: #008ba3;
+  color: #fff;
+}
+
+/* Campos de texto */
+textarea[readonly], input[readonly] {
+  background-color: #f3f3f3 !important;
+  color: #555;
+}
+
+/* Spinner alineado en botones */
+.spinner-border {
+  vertical-align: -0.125em;
+  margin-right: 0.4em;
+}
+
+/* Footer */
+footer {
+  background: #f7f7f7;
+  color: #555;
+  font-size: 0.98em;
+  border-top: 1px solid #e0e0e0;
+  margin-top: 4rem;
+}
+
+/* Mensajes */
+#messages-container .alert {
+  max-width: 500px;
+  margin: 0 auto 1.5rem auto;
+  font-size: 1rem;
+}
+
+/* Badges y resultados */
+.badge {
+  font-size: 1em;
+  margin-right: 0.3em;
+}
+#sentiment-result .badge,
+#keywords-result .badge {
+  margin-top: 0.5em;
+}
+
+/* Responsive */
+@media (max-width: 575.98px) {
+  h1, h2, .navbar-brand {
+    font-size: 1.1em;
   }
-  navigator.clipboard.writeText(el.value || el.innerText).then(() => {
-    if (btn) {
-      const icon = btn.querySelector('i');
-      const original = icon.className;
-      icon.className = 'fas fa-check';
-      setTimeout(() => { icon.className = original; }, 1200);
-    }
-    showMessage('¡Texto copiado al portapapeles!', 'success');
-  }).catch(() => showMessage('Error al copiar.', 'danger'));
-}
-function limpiarCampos(ids) {
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
-}
-function limpiarResultados(ids) {
-  ids.forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = '';
-  });
-}
-
-// Humanizar y Analizar (simulado)
-document.getElementById('humanize-btn').addEventListener('click', () => {
-  showSpinner('spinner-humanize', true);
-  setTimeout(() => {
-    document.getElementById('humanized-text').value = 'Este es un texto humanizado de ejemplo.';
-    document.getElementById('sentiment-result').innerHTML =
-      '<span class="badge bg-success"><i class="fas fa-smile"></i> Sentimiento: Positivo (0.87)</span>';
-    showSpinner('spinner-humanize', false);
-    showMessage('¡Texto procesado con éxito!', 'success');
-  }, 1300);
-});
-
-// Extraer palabras clave (simulado)
-document.getElementById('keywords-btn').addEventListener('click', () => {
-  showSpinner('spinner-keywords', true);
-  setTimeout(() => {
-    document.getElementById('keywords-result').innerHTML =
-      '<strong>Palabras Clave:</strong> <span class="badge bg-info text-dark">IA</span> <span class="badge bg-info text-dark">Ética</span> <span class="badge bg-info text-dark">Trabajo</span>';
-    showSpinner('spinner-keywords', false);
-    showMessage('¡Palabras clave extraídas!', 'success');
-  }, 1000);
-});
-
-// Limpiar sección Humanizar
-document.getElementById('clear-humanize').addEventListener('click', () => {
-  limpiarCampos(['text-original', 'humanized-text']);
-  limpiarResultados(['sentiment-result', 'keywords-result']);
-});
-
-// Resumir texto (simulado)
-document.getElementById('summary-btn').addEventListener('click', () => {
-  showSpinner('spinner-summary', true);
-  setTimeout(() => {
-    document.getElementById('summary-output').value = 'Este es un resumen de ejemplo generado automáticamente.';
-    showSpinner('spinner-summary', false);
-    showMessage('¡Resumen generado!', 'success');
-  }, 1200);
-});
-
-// Limpiar sección Resumir
-document.getElementById('clear-summary').addEventListener('click', () => {
-  limpiarCampos(['summary-input', 'summary-output']);
-});
-
-// Copiar textos
-document.getElementById('copy-humanized').addEventListener('click', () => {
-  copyToClipboard('humanized-text', 'copy-humanized');
-});
-document.getElementById('copy-summary').addEventListener('click', () => {
-  copyToClipboard('summary-output', 'copy-summary');
-});
-
-// Captura de pantalla (simulada)
-document.getElementById('screenshot-btn').addEventListener('click', () => {
-  document.getElementById('screenshot-result').innerHTML =
-    '<img src="https://placekitten.com/400/200" alt="Captura simulada" class="img-fluid rounded border" style="max-width:400px;">';
-  showMessage('¡Captura simulada generada!', 'info');
-});
-document.getElementById('clear-capture').addEventListener('click', () => {
-  limpiarResultados(['screenshot-result']);
-});
-
-// Limpiar toda la interfaz
-document.getElementById('clear-all').addEventListener('click', () => {
-  limpiarCampos([
-    'text-original', 'humanized-text', 'summary-input', 'summary-output'
-  ]);
-  limpiarResultados([
-    'sentiment-result', 'keywords-result', 'screenshot-result'
-  ]);
-  showMessage('Interfaz limpiada.', 'secondary');
-});
-
-// Opcional: Cerrar alertas automáticamente después de unos segundos
-document.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('messages-container');
-  if (container) {
-    container.addEventListener('DOMNodeInserted', () => {
-      setTimeout(() => {
-        if (container.firstChild) container.firstChild.classList.remove('show');
-      }, 2500);
-    });
+  .card {
+    margin-bottom: 1.2em;
   }
-});
+  main.container {
+    padding: 0.5em;
+  }
+}
 
-/*
-  INSTRUCCIONES PARA GITHUB PAGES:
-  1. Sube index.html en la raíz del repositorio.
-  2. Sube este archivo JS en assets/js/scripts.js.
-  3. Ve a Settings > Pages, selecciona la rama y carpeta raíz, y guarda.
-  4. Accede a tu web en https://tuusuario.github.io/tu-repo/
-*/
+a {
+  color: var(--color-primario);
+}
+a:hover {
+  color: var(--color-acento);
+}
