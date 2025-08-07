@@ -1,0 +1,55 @@
+/* ==========================================================================
+   styles.css — Personalización básica para HumanizarIA
+   ========================================================================= */
+
+/* Color principal de la marca */
+:root {
+  --color-primario: #1976d2;
+  --color-secundario: #f5f5f5;
+}
+
+/* Navbar personalizado */
+.navbar-brand {
+  font-weight: bold;
+  font-size: 1.35rem;
+  letter-spacing: 1px;
+}
+
+/* Cards */
+.card {
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+/* Botón principal */
+.btn-primary {
+  background-color: var(--color-primario);
+  border-color: var(--color-primario);
+}
+
+/* Footer */
+footer {
+  font-size: 0.97em;
+  color: #666;
+}
+
+/* Mejoras responsivas para móviles */
+@media (max-width: 575.98px) {
+  h1, h2 {
+    font-size: 1.25em;
+  }
+  .navbar-brand {
+    font-size: 1em;
+  }
+}
+
+/* Enlaces */
+a {
+  color: var(--color-primario);
+}
+a:hover {
+  text-decoration: underline;
+}
+
+/* Puedes añadir más estilos personalizados aquí según requieras */
+/* ... */
