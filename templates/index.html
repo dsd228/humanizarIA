@@ -1,0 +1,399 @@
+{% extends "base.html" %} {# Asume que tienes un base.html con Bootstrap y CSS básico #}
+{% block title %}Herramientas HumanizarIA{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Herramientas HumanizarIA</h1>
+
+    {# Mostrar mensajes Flash/Toast si existen (usando el helper add_toast) #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {# Intenta usar el contenedor de toasts si existe en base.html #}
+        <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+          {% for category, message in messages %}
+          <div class="toast align-items-center text-bg-{{ category }} border-0 show" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="5000" data-bs-autohide="true">
+              <div class="d-flex">
+                  <div class="toast-body">
+                      {{ message }}
+                  </div>
+                  <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+          </div>
+          {% endfor %}
+        </div>
+        {# Fallback si no hay contenedor de toasts (alertas normales) #}
+        {# {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %} #}
+      {% endif %}
+    {% endwith %}
+
+    {# --- Sección Humanizar y Analizar (Probablemente AJAX) --- #}
+    <div class="card mb-4">
+        <div class="card-header">Humanizar Texto y Analizar Sentimiento</div>
+        <div class="card-body">
+            {# Formulario solo para obtener token y campo texto principal #}
+            <form id="humanize-form-container" method="POST"> {# method="POST" aunque usemos JS para prevenir GET si JS falla #}
+                 {# IMPORTANTE: Usa el nombre de campo correcto de tu forms.py #}
+                 {# Si es texto_principal: #}
+                 <!-- {{ humanize_form.hidden_tag() }}
+                 <div class="mb-3">
+                    {# templates/index.html - Líneas 50 y 51 aprox. #}
+                    {{ humanize_form.texto_principal.label(class="form-label") }}  {# <-- Cambiado aquí #}
+                    {{ humanize_form.texto_principal(id="text-input-original", class="form-control", rows="8", value=texto_original or '') }} {# <-- Cambiado aquí #}
+                 </div> -->
+                 {# Si originalmente era texto_original: #}
+                 {{ humanize_form.hidden_tag() }}
+                 <div class="mb-3">
+                    {{ humanize_form.texto_principal.label(class="form-label") }}
+                    {{ humanize_form.texto_principal(id="text-input-original", class="form-control", rows="8", value=texto_original or '') }}
+                 </div>
+
+                <button type="button" id="humanize-button" class="btn btn-primary me-2">Humanizar y Analizar</button>
+                 {# Botón Keywords (AJAX) asociado al texto original #}
+                {% if rake_available %}
+                    <button type="button" id="keywords-button" class="btn btn-info">Extraer Palabras Clave</button>
+                {% else %}
+                    <button type="button" class="btn btn-info" disabled title="{{ RAKE_MISSING_MSG }}">Extraer Palabras Clave</button>
+                {% endif %}
+            </form>
+
+            <div id="humanize-spinner" class="mt-3" style="display: none;">
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <label for="text-output-humanized" class="form-label">Texto Humanizado:</label>
+                <textarea id="text-output-humanized" class="form-control" rows="8" readonly>{{ texto_humanizado or '' }}</textarea>
+            </div>
+            <div id="sentiment-result" class="mt-3">
+                {# El resultado del análisis de sentimiento irá aquí #}
+            </div>
+             <div id="keywords-result" class="mt-3">
+                {# El resultado de las palabras clave irá aquí #}
+            </div>
+        </div>
+    </div>
+
+    {# --- Sección Resumir Texto Pegado (Probablemente AJAX) --- #}
+    {% if text_summary_enabled %}
+    <div class="card mb-4">
+        <div class="card-header">Resumir Texto Pegado</div>
+        <div class="card-body">
+            <form id="text-summary-form-container" method="POST">
+                {{ text_summary_form.hidden_tag() }} {# CSRF #}
+                <div class="mb-3">
+                    {{ text_summary_form.texto_para_resumir.label(class="form-label") }}
+                    {{ text_summary_form.texto_para_resumir(id="text-input-summary", class="form-control", rows="5") }}
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        {{ text_summary_form.num_sentences_text.label(class="form-label") }}
+                        {{ text_summary_form.num_sentences_text(id="text-summary-sentences", class="form-control") }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ text_summary_form.language_text.label(class="form-label") }}
+                        {{ text_summary_form.language_text(id="text-summary-language", class="form-select") }}
+                    </div>
+                </div>
+                <button type="button" id="text-summary-button" class="btn btn-secondary">Resumir Texto</button>
+            </form>
+             <div id="text-summary-spinner" class="mt-3" style="display: none;">
+                <div class="spinner-border spinner-border-sm" role="status"> <span class="visually-hidden">Cargando...</span> </div>
+            </div>
+            <div id="text-summary-result" class="mt-3">
+                {# El resultado del resumen de texto irá aquí #}
+                {# Originalmente podrías haber mostrado session['text_summary'] aquí,
+                   pero ahora lo manejamos con AJAX #}
+                 <!-- {% if text_summary %}
+                 <h6>Resumen Generado (Sesión):</h6>
+                 <pre>{{ text_summary }}</pre>
+                 {% endif %} -->
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">La funcionalidad de resumen de texto no está disponible. {{ TEXT_SUMMARY_MISSING_DEPS_MSG }}</div>
+    {% endif %}
+
+    {# --- Sección Resumir PDF (Formulario POST estándar) --- #}
+    {% if pdf_summary_enabled %}
+    <div class="card mb-4">
+        <div class="card-header">Resumir Archivo PDF</div>
+        <div class="card-body">
+             <form method="POST" action="{{ url_for('home') }}" enctype="multipart/form-data">
+                {{ pdf_summary_form.hidden_tag() }}
+                <div class="mb-3">
+                    {{ pdf_summary_form.archivo_pdf.label(class="form-label") }}
+                    {{ pdf_summary_form.archivo_pdf(class="form-control" + (" is-invalid" if pdf_summary_form.archivo_pdf.errors else "")) }}
+                    {% if pdf_summary_form.archivo_pdf.errors %}
+                        <div class="invalid-feedback">{{ pdf_summary_form.archivo_pdf.errors[0] }}</div>
+                    {% endif %}
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        {{ pdf_summary_form.num_sentences_pdf.label(class="form-label") }}
+                        {{ pdf_summary_form.num_sentences_pdf(class="form-control" + (" is-invalid" if pdf_summary_form.num_sentences_pdf.errors else "")) }}
+                         {% if pdf_summary_form.num_sentences_pdf.errors %}
+                            <div class="invalid-feedback">{{ pdf_summary_form.num_sentences_pdf.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                     <div class="col-md-6">
+                        {{ pdf_summary_form.language_pdf.label(class="form-label") }}
+                        {{ pdf_summary_form.language_pdf(class="form-select" + (" is-invalid" if pdf_summary_form.language_pdf.errors else "")) }}
+                         {% if pdf_summary_form.language_pdf.errors %}
+                            <div class="invalid-feedback">{{ pdf_summary_form.language_pdf.errors[0] }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {# Asegúrate que el name del botón coincide con tu chequeo en Python ('submit_pdf') #}
+                <button type="submit" name="submit_pdf" value="Resumir PDF" class="btn btn-success">Resumir PDF</button>
+            </form>
+
+            {% if pdf_summary %}
+            <div class="mt-4">
+                <h6>Resumen del PDF "{{ session.get('last_pdf_name', '') }}":</h6>
+                <pre class="bg-light p-3 border rounded">{{ pdf_summary }}</pre>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-warning">La funcionalidad de resumen de PDF no está disponible. {{ PDF_SUMMARY_MISSING_DEPS_MSG }}</div>
+    {% endif %}
+
+    {# --- Sección Captura de Pantalla (Formulario POST estándar) --- #}
+    {% if screenshot_enabled %}
+     <div class="card mb-4">
+        <div class="card-header">Captura de Pantalla</div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('home') }}">
+                {{ capture_form.hidden_tag() }}
+                {# Asegúrate que el name del botón coincide ('submit_capture') #}
+                <button type="submit" name="submit_capture" value="Capturar" class="btn btn-info">Realizar Captura</button>
+            </form>
+             {% if session.get('screenshot_file') %}
+                <div class="mt-3">
+                    <p>Última captura:</p>
+                    <img src="{{ url_for('static', filename=session.screenshot_file) }}?t={{ session.screenshot_ts }}" alt="Captura de pantalla" class="img-fluid border rounded" style="max-width: 400px;">
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+     <div class="alert alert-warning">La funcionalidad de captura de pantalla no está disponible. {{ SCREENSHOT_MISSING_MSG }}</div>
+    {% endif %}
+
+    {# --- Sección Limpiar (Formulario POST estándar) --- #}
+    <div class="card mb-4">
+        <div class="card-header">Limpiar Interfaz</div>
+        <div class="card-body">
+             <form method="POST" action="{{ url_for('home') }}">
+                {{ clear_form.hidden_tag() }}
+                 {# Asegúrate que el name del botón coincide ('submit_clear') #}
+                <button type="submit" name="submit_clear" value="Limpiar" class="btn btn-danger">Limpiar Todo</button>
+            </form>
+        </div>
+    </div>
+
+</div> {# Fin container #}
+{% endblock %}
+
+
+{% block scripts %}
+{{ super() }} {# Incluir scripts de base.html si existen #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    // --- Helpers (Básicos) ---
+    const humanizeSpinner = document.getElementById('humanize-spinner');
+    const summarySpinner = document.getElementById('text-summary-spinner');
+
+    function showSpinner(spinnerElement, show = true) {
+        if (spinnerElement) {
+            spinnerElement.style.display = show ? 'block' : 'none';
+        }
+    }
+
+    // Asume showToast existe globalmente o usa alert
+    function displayError(message, areaId = null) {
+        console.error("Error:", message);
+        if (typeof showToast === 'function') {
+            showToast(`Error: ${message}`, 'danger');
+        } else {
+            alert(`Error: ${message}`);
+        }
+        // Opcional: Mostrar en un div específico
+        // if (areaId) {
+        //     const errorArea = document.getElementById(areaId);
+        //     if (errorArea) errorArea.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+        // }
+    }
+
+    // --- AJAX Humanizar/Analizar ---
+    const humanizeButton = document.getElementById('humanize-button');
+    const textInputOriginal = document.getElementById('text-input-original');
+    const textOutputHumanized = document.getElementById('text-output-humanized');
+    const sentimentResultDiv = document.getElementById('sentiment-result');
+    const humanizeForm = document.getElementById('humanize-form-container');
+    const humanizeCsrf = humanizeForm ? humanizeForm.querySelector('input[name="csrf_token"]') : null;
+
+    if (humanizeButton && textInputOriginal && textOutputHumanized && sentimentResultDiv && humanizeCsrf) {
+        humanizeButton.addEventListener('click', function() {
+            const text = textInputOriginal.value;
+            if (!text.trim()) return;
+
+            showSpinner(humanizeSpinner, true);
+            humanizeButton.disabled = true;
+            sentimentResultDiv.innerHTML = ''; // Limpiar anterior
+            textOutputHumanized.value = ''; // Limpiar anterior
+
+            fetch("{{ url_for('ajax_humanize_analyze') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': humanizeCsrf.value
+                },
+                body: JSON.stringify({ text: text })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error && !data.humanized_text && !data.sentiment) { // Error general
+                    throw new Error(data.error);
+                }
+                if (data.humanized_text) {
+                    textOutputHumanized.value = data.humanized_text;
+                }
+                if (data.sentiment) {
+                    if(data.sentiment.error){
+                         sentimentResultDiv.innerHTML = `<span class="text-warning">Análisis falló: ${data.sentiment.error}</span>`;
+                    } else {
+                         sentimentResultDiv.innerHTML = `<strong>Sentimiento:</strong> ${data.sentiment.label || 'N/A'} ${data.sentiment.score !== null ? `(Score: ${data.sentiment.score.toFixed(3)})` : ''}`;
+                         // Podrías añadir color o icono básico aquí
+                    }
+                }
+            })
+            .catch(error => {
+                displayError(error.message);
+            })
+            .finally(() => {
+                showSpinner(humanizeSpinner, false);
+                humanizeButton.disabled = false;
+            });
+        });
+    }
+
+    // --- AJAX Palabras Clave ---
+    const keywordsButton = document.getElementById('keywords-button');
+    const keywordsResultDiv = document.getElementById('keywords-result');
+    // Reutilizamos el token CSRF del formulario de humanizar
+    if (keywordsButton && keywordsResultDiv && textInputOriginal && humanizeCsrf) {
+         keywordsButton.addEventListener('click', function() {
+             const text = textInputOriginal.value; // Usa el mismo texto
+             if (!text.trim()) {
+                 alert("El texto principal está vacío.");
+                 return;
+             };
+
+             showSpinner(humanizeSpinner, true); // Reusar spinner
+             keywordsButton.disabled = true;
+             keywordsResultDiv.innerHTML = ''; // Limpiar
+
+             fetch("{{ url_for('ajax_keywords') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                     'X-CSRFToken': humanizeCsrf.value
+                },
+                // No necesita body si el backend usa la sesión
+                 // body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                 if (data.error) {
+                    throw new Error(data.error);
+                 }
+                 if (data.keywords && data.keywords.length > 0) {
+                     keywordsResultDiv.innerHTML = `<strong>Palabras Clave:</strong><ul class="list-unstyled mt-2">` +
+                        data.keywords.map(kw => `<li>${kw}</li>`).join('') + `</ul>`;
+                 } else {
+                     keywordsResultDiv.innerHTML = `<p class="text-muted mt-2">No se encontraron palabras clave.</p>`;
+                 }
+             })
+             .catch(error => {
+                 displayError(error.message);
+             })
+             .finally(() => {
+                 showSpinner(humanizeSpinner, false);
+                 keywordsButton.disabled = false;
+             });
+         });
+    }
+
+    // --- AJAX Resumir Texto ---
+    const textSummaryButton = document.getElementById('text-summary-button');
+    const textInputSummary = document.getElementById('text-input-summary');
+    const textSummarySentences = document.getElementById('text-summary-sentences');
+    const textSummaryLanguage = document.getElementById('text-summary-language');
+    const textSummaryResultDiv = document.getElementById('text-summary-result');
+    const summaryForm = document.getElementById('text-summary-form-container');
+    const summaryCsrf = summaryForm ? summaryForm.querySelector('input[name="csrf_token"]') : null;
+
+    if (textSummaryButton && textInputSummary && textSummarySentences && textSummaryLanguage && textSummaryResultDiv && summaryCsrf) {
+        textSummaryButton.addEventListener('click', function() {
+            const text = textInputSummary.value;
+            const sentences = textSummarySentences.value;
+            const language = textSummaryLanguage.value;
+
+            if (!text.trim()) { alert("Ingresa texto para resumir."); return; }
+            if (!/^\d+$/.test(sentences) || parseInt(sentences) < 1) { alert("Número de frases inválido."); return; }
+
+            showSpinner(summarySpinner, true);
+            textSummaryButton.disabled = true;
+            textSummaryResultDiv.innerHTML = ''; // Limpiar
+
+            fetch("{{ url_for('ajax_summarize_text') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': summaryCsrf.value
+                },
+                body: JSON.stringify({ text: text, sentences: sentences, language: language })
+            })
+            .then(response => response.json())
+            .then(data => {
+                 if (data.error) {
+                    throw new Error(data.error);
+                 }
+                 if (data.summary) {
+                    textSummaryResultDiv.innerHTML = `<h6>Resumen (${data.sentences} frases, ${data.language}):</h6><pre class="bg-light p-3 border rounded">${data.summary}</pre>`;
+                 } else {
+                     textSummaryResultDiv.innerHTML = `<p class="text-muted mt-2">No se pudo generar el resumen.</p>`;
+                 }
+             })
+             .catch(error => {
+                 displayError(error.message);
+             })
+             .finally(() => {
+                 showSpinner(summarySpinner, false);
+                 textSummaryButton.disabled = false;
+             });
+        });
+    }
+
+    // Inicializar Toasts de Bootstrap si se usaron
+    var toastElList = [].slice.call(document.querySelectorAll('.toast.show'));
+    var toastList = toastElList.map(function (toastEl) {
+      // No intentar reinicializar si ya están mostrándose desde el servidor
+      return new bootstrap.Toast(toastEl, { autohide: true, delay: 5000 });
+    });
+
+
+}); // Fin DOMContentLoaded
+</script>
+{% endblock %}

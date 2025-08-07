@@ -1,0 +1,26 @@
+¡Perfecto! La salida del comando dir nos da la información clave:
+
+Paso 1.  cd C:\Users\dsd22\humanizarIA + enter
+
+
+Paso 2. humanizarIA\Scripts\activate  + enter
+
+
+
+paso 3. python humanizaria.py + enter
+
+
+
+http://127.0.0.1:5000
+
+
+http://192.168.3.78:5000
+
+
+C:\Users\dsd22>cd C:\Users\dsd22\humanizarIA
+
+C:\Users\dsd22\humanizarIA>python -m venv humanizarIA
+
+C:\Users\dsd22\humanizarIA>humanizarIA\Scripts\activate
+
+(humanizarIA) C:\Users\dsd22\humanizarIA>
